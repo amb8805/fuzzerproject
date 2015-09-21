@@ -1,22 +1,26 @@
-package example.fuzzer;
+package fuzzer;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
+import java.net.URL;
+
 
 import com.gargoylesoftware.htmlunit.FailingHttpStatusCodeException;
 import com.gargoylesoftware.htmlunit.WebClient;
-import com.gargoylesoftware.htmlunit.html.HtmlAnchor;
-import com.gargoylesoftware.htmlunit.html.HtmlForm;
-import com.gargoylesoftware.htmlunit.html.HtmlInput;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.gargoylesoftware.htmlunit.html.HtmlSubmitInput;
+import com.gargoylesoftware.htmlunit.html.*;
+import com.gargoylesoftware.htmlunit.WebResponse;
 
-public class BasicFuzzer {
+public class Fuzzer {
 
 	public static void main(String[] args) throws FailingHttpStatusCodeException, MalformedURLException, IOException {
 		WebClient webClient = new WebClient();
-		webClient.setJavaScriptEnabled(true);
+		String url = "http://localhost:8080/bangeit";
 		discoverLinks(webClient, url);
 		doFormPost(webClient);
 		webClient.closeAllWindows();
@@ -91,5 +95,57 @@ public class BasicFuzzer {
 		}
 	}
 
-	private static void
+	/**
+	 * Returns all inputs on a page.
+	 */
+	public static ArrayList<DomElement> getInputs(HtmlPage page) {
+		List<HtmlForm> formsList = page.getForms();// get all forms
+		Iterable<DomElement> formElements;
+		ArrayList<DomElement> formChildren = new ArrayList<DomElement>();
+		for (HtmlForm form : formsList) {
+			formElements = form.getChildElements(); // get children of form
+			for (DomElement e : formElements) {
+				formChildren.add(e);
+				formChildren.addAll(getElements(e));
+			}
+		}
+		ArrayList<DomElement> inputs = new ArrayList<DomElement>();
+		for (DomElement e : formChildren) {
+			if (e instanceof HtmlInput) {
+				inputs.add(e);// if its an input add it
+			}
+		}
+
+		return inputs;
+	}
+
+	/**
+	 *get all the child elements of DOM element
+	 */
+	private static ArrayList<DomElement>getElements(DomElement e) {
+		ArrayList<DomElement> elements = new ArrayList<DomElement>();
+		Iterable<DomElement> children = e.getChildElements();
+		for (DomElement child : children) {
+			elements.add(child);
+			elements.addAll(getElements(child));
+		}
+		return elements;
+	}
+
+	/**
+	 * Returns an ArrayList of get input from url.
+	 */
+	public static ArrayList<String> getUrlInputs(URL url) {
+		ArrayList<String> inputs;
+		String queries = url.getQuery();
+		if (queries != null) {
+			String[] splitQueries = queries.split("&");
+			inputs = new ArrayList<String>(Arrays.asList(splitQueries));
+		} else {
+			inputs = null;
+		}
+		return inputs;
+	}
+
+
 }
